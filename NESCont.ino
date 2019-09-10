@@ -90,7 +90,9 @@ const int RIGHT_BUTTON     = 7;
 //  Variables
 //===============================================================================
 byte nesRegister  = 0;    // We will use this to hold current button states
-LiquidCrystal lcd(1, 9, 5, 6, 7, 8);
+const int rs = 1, en = 9, d4 = 8, d5 = 7, d6 = 6, d7 = 5; // pins for LCD
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
 bool isJump = false;
 bool gameOver = false;
 
@@ -104,50 +106,6 @@ byte character[8] = {
   B00100,
   B01010,
   B10001,
-};
-
-byte charjump1_head[8] = {
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B01110,
-  B01110,
-  B01110,
-};
-
-byte charjump1_body[8] = {
-  B00100,
-  B11111,
-  B00100,
-  B01010,
-  B10001,
-  B00000,
-  B00000,
-  B00000,
-};
-
-byte charjump2_upper[8] = {
-  B00000,
-  B00000,
-  B01110,
-  B01110,
-  B01110,
-  B00100,
-  B11111,
-  B00100,
-};
-
-byte charjump2_lower[8] = {
-  B01010,
-  B10001,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
 };
 //===============================================================================
 //  Pin Declarations
@@ -179,10 +137,6 @@ void setup()
   // Setup for LCD
   lcd.begin(16,2);
   lcd.createChar(6, character);
-  lcd.createChar(5, charjump1_head);
-  lcd.createChar(4, charjump1_body);
-  lcd.createChar(3, charjump2_upper);
-  lcd.createChar(2, charjump2_lower);
   lower[0] = 1;
   for (int i = 1; i <= 15; i++) {
     lower[i] = 0;
@@ -200,20 +154,21 @@ void loop()
   // in a nice 8 bit variable format. Remember to refer to the table and
   // constants above for which button maps where!
   nesRegister = readNesController();
-  
+
+  // scoring the game
   String stringOne = "Final score: ";
   String result = stringOne + score;
-  
-  
-  // Slight delay before we debug what was pressed so we don't spam the
-  // serial monitor.
+
+  // with every iteration, move the obsatcle forward
   lcd.setCursor(0, 1);
   lcd.print((char)6);
   lcd.setCursor(loc+1, 1);
   lcd.print(" ");
   lcd.setCursor(loc, 1);
   lcd.print("/");
+  // is the A button pressed?
   if (bitRead(nesRegister, A_BUTTON) == 0) {
+    // if so, move the character from the ground to the air
     lcd.setCursor(0, 1);
     lcd.print(" ");
     lcd.setCursor(0, 0);
@@ -224,6 +179,8 @@ void loop()
     lcd.setCursor(1, 1);
     lcd.print(" ");
   }
+
+  // detect collision
   if (loc == 0 || loc == 1) {
     if (bitRead(nesRegister, A_BUTTON) == 0) {
       score++;
@@ -240,28 +197,9 @@ void loop()
       score = 0;
     }
   }
+  // move the obstacle one section closer to player
   loc--;
   delay(150);
-  // To give you an idea on how to use this data to control things for your
-  // next project, look through the serial terminal code below. Basically,
-  // just choose a bit to look at and decide what to do whether HIGH (not pushed)
-  // or LOW (pushed). What is nice about this test code is that we mapped all
-  // of the bits to the actual button name so no useless memorizing!
-  
-    
-  /*if (bitRead(nesRegister, B_BUTTON) == 0)
-    
-  if (bitRead(nesRegister, START_BUTTON) == 0)
-  
-  if (bitRead(nesRegister, SELECT_BUTTON) == 0)
-    
-  if (bitRead(nesRegister, UP_BUTTON) == 0)
-    
-  if (bitRead(nesRegister, DOWN_BUTTON) == 0)
-    
-  if (bitRead(nesRegister, LEFT_BUTTON) == 0)
-  
-  if (bitRead(nesRegister, RIGHT_BUTTON) == 0)*/
 }
 
 //===============================================================================
@@ -336,6 +274,7 @@ byte readNesController()
   return tempData;
 }
 
+// check the button data to see if the A button was pressed
 bool buttonPress(byte data) {
   if (bitRead(data, A_BUTTON) == 0) {
     return true;
@@ -344,85 +283,3 @@ bool buttonPress(byte data) {
     return false;
   }
 }
-
-void spawn() {
-  lcd.clear();
-  lcd.setCursor(0, 1);
-  lcd.print((char)6);
-}
-
-void spawnEnemy() {
-  for(int i = 15; i > 12; i--) {
-    lcd.setCursor(i, 1);
-    lcd.print("/");
-    lcd.setCursor(i+1, 1);
-    lcd.print(" ");
-    delay(150);
-  }
-}
-
-void shoot() {
-  lcd.setCursor(1, 1);
-  lcd.print(">");
-  for(int i = 2; i <= 12; i++) {
-    lcd.setCursor(i-1, 1);
-    lcd.print(" ");
-    lcd.setCursor(i, 1);
-    lcd.print(">");
-    delay(150);
-  }
-  lcd.setCursor(12, 1);
-  lcd.print(" ");
-  lcd.setCursor(13, 1);
-  lcd.print(" ");
-}
-
-/*void jumpAnimation() {
-  lcd.setCursor(0,1); // frame 1
-  lcd.print((char)4);
-  lcd.setCursor(0,0);
-  lcd.print((char)5);
-  delay(150);
-  lcd.clear();
-  lcd.setCursor(0,1); // frame 2
-  lcd.print((char)2);
-  lcd.setCursor(0,0);
-  lcd.print((char)3);
-  delay(150);
-  lcd.clear();
-  lcd.setCursor(0,0); // frame 3 - airborne
-  lcd.print((char)6);
-  delay(150);
-  lcd.clear();
-  lcd.setCursor(0,1); // frame 4 - begin descent
-  lcd.print((char)2);
-  lcd.setCursor(0,0);
-  lcd.print((char)3);
-  delay(150);
-  lcd.clear();
-  lcd.setCursor(0,1); // frame 5
-  lcd.print((char)4);
-  lcd.setCursor(0,0);
-  lcd.print((char)5);
-  delay(150);
-  lcd.clear();
-  lcd.setCursor(0,1); // end animation
-  lcd.print((char)6);
-}
-
-void launchObject() {
-  for(int i = 15; i >= 0; i--) {
-    lcd.setCursor(0, 1);
-    lcd.print(" ");
-    lcd.setCursor(i, 1);
-    lcd.print("/");
-    lcd.setCursor(i+1, 1);
-    lcd.print(" ");
-    
-    delay(150);
-  }
-}
-
-bool checkCollision() {
-  
-}*/
